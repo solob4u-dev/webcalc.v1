@@ -1,0 +1,568 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BCALC:V_1 | B.B.T Works</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      background: #090d16;
+      color: #f8fafc;
+      min-height: 100vh;
+      padding: 24px 16px;
+      line-height: 1.5;
+    }
+    .container { max-width: 780px; margin: 0 auto; }
+    .brand-header {
+      background: linear-gradient(135deg, #241445, #0f172a);
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 22px 24px;
+      margin-bottom: 20px;
+    }
+    .brand-top {
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: #38bdf8;
+      margin-bottom: 6px;
+    }
+    .app-title {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .tagline {
+      font-size: 0.95rem;
+      color: #cbd5e1;
+      font-style: italic;
+    }
+    .panel {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 16px;
+      padding: 22px 24px;
+    }
+    .selectors {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 640px) {
+      .selectors { grid-template-columns: 1fr; }
+    }
+    .field-group { margin-bottom: 14px; }
+    label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+    }
+    select, input[type="number"], input[type="text"] {
+      width: 100%;
+      padding: 11px 13px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: #0b1120;
+      color: #f8fafc;
+      font-size: 0.96rem;
+    }
+    .section-label {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #38bdf8;
+      margin: 8px 0 14px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .btn-calc {
+      width: 100%;
+      margin-top: 10px;
+      padding: 13px 18px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #ffffff;
+      background: linear-gradient(90deg, #7e22ce, #2563eb, #0284c7);
+      cursor: pointer;
+    }
+    .result-box {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      display: none;
+    }
+    .result-box.success {
+      display: block;
+      background: #052e16;
+      border: 1px solid #16a34a;
+      color: #86efac;
+    }
+    .result-box.error {
+      display: block;
+      background: #450a0a;
+      border: 1px solid #dc2626;
+      color: #fca5a5;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 22px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="brand-header">
+      <div class="brand-top">Developed and invented by B.B.T Works</div>
+      <h1 class="app-title">BCALC:V_1</h1>
+      <div class="tagline">Zero limits. Pure code.</div>
+    </header>
+
+    <main class="panel">
+      <div class="selectors">
+        <div>
+          <label for="categorySelect">Select Category</label>
+          <select id="categorySelect"></select>
+        </div>
+        <div>
+          <label for="calcSelect">Select Calculation</label>
+          <select id="calcSelect"></select>
+        </div>
+      </div>
+
+      <div class="section-label">Enter Inputs</div>
+      <form id="calcForm">
+        <div id="inputsContainer"></div>
+        <button type="submit" class="btn-calc">Calculate</button>
+      </form>
+
+      <div id="resultBox" class="result-box"></div>
+    </main>
+
+    <footer class="footer">
+      Developed and invented by B.B.T Works &mdash; Zero limits. Pure code.
+    </footer>
+  </div>
+
+  <script>
+    function gcdInt(a, b) {
+      var x = Math.abs(Math.floor(a));
+      var y = Math.abs(Math.floor(b));
+      while (y !== 0) {
+        var t = y;
+        y = x % y;
+        x = t;
+      }
+      return x || 1;
+    }
+
+    function fmt(num) {
+      return Number(num.toFixed(6)).toString();
+    }
+
+    function isWhole(n) {
+      return Math.floor(n) === n;
+    }
+
+    var ITEMS = [
+      // A. ARITHMETIC & BASICS
+      { cat: "A. Arithmetic & Basics", name: "1. Percentage Calculation", fields: ["Part Value", "Total Value"], fn: function(v) {
+        if (v[1] === 0) throw new Error("Total value cannot be zero.");
+        return "Percentage: " + fmt((v[0] / v[1]) * 100) + "%";
+      }},
+      { cat: "A. Arithmetic & Basics", name: "2. Percentage of a Number", fields: ["Number", "Percentage (%)"], fn: function(v) {
+        return "Result: " + fmt((v[0] * v[1]) / 100);
+      }},
+      { cat: "A. Arithmetic & Basics", name: "3. Average", fields: ["Numbers (space or comma separated)"], isText: true, def: "10, 20, 30", fn: function(v) {
+        var parts = String(v[0] || "").replace(/,/g, " ").trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) throw new Error("Please enter at least one number.");
+        var sum = 0;
+        for (var i = 0; i < parts.length; i++) {
+          var n = Number(parts[i]);
+          if (isNaN(n)) throw new Error("Please enter valid numbers only.");
+          sum += n;
+        }
+        return "Average: " + fmt(sum / parts.length);
+      }},
+      { cat: "A. Arithmetic & Basics", name: "4. Time", fields: ["Distance", "Speed"], fn: function(v) {
+        if (v[1] === 0) throw new Error("Speed cannot be zero.");
+        return "Time: " + fmt(v[0] / v[1]);
+      }},
+      { cat: "A. Arithmetic & Basics", name: "5. Speed", fields: ["Distance", "Time"], fn: function(v) {
+        if (v[1] === 0) throw new Error("Time cannot be zero.");
+        return "Speed: " + fmt(v[0] / v[1]);
+      }},
+      { cat: "A. Arithmetic & Basics", name: "6. Distance", fields: ["Speed", "Time"], fn: function(v) {
+        return "Distance: " + fmt(v[0] * v[1]);
+      }},
+      { cat: "A. Arithmetic & Basics", name: "7. Ratio", fields: ["First Number (a)", "Second Number (b)"], fn: function(v) {
+        if (v[1] === 0) throw new Error("Second number cannot be zero.");
+        if (isWhole(v[0]) && isWhole(v[1])) {
+          var g = gcdInt(v[0], v[1]);
+          return "Ratio: " + (v[0] / g) + " : " + (v[1] / g);
+        }
+        return "Ratio: " + v[0] + " : " + v[1] + " (Decimal: " + fmt(v[0] / v[1]) + ")";
+      }},
+
+      // B. FINANCIAL CALCULATIONS
+      { cat: "B. Financial Calculations", name: "8. Profit", fields: ["Selling Price (SP)", "Cost Price (CP)"], fn: function(v) {
+        return "Profit: " + fmt(v[0] - v[1]);
+      }},
+      { cat: "B. Financial Calculations", name: "9. Loss", fields: ["Cost Price (CP)", "Selling Price (SP)"], fn: function(v) {
+        return "Loss: " + fmt(v[0] - v[1]);
+      }},
+      { cat: "B. Financial Calculations", name: "10. Profit Percentage", fields: ["Profit Amount", "Cost Price (CP)"], fn: function(v) {
+        if (v[1] === 0) throw new Error("Cost Price cannot be zero.");
+        return "Profit Percentage: " + fmt((v[0] / v[1]) * 100) + "%";
+      }},
+      { cat: "B. Financial Calculations", name: "11. Loss Percentage", fields: ["Loss Amount", "Cost Price (CP)"], fn: function(v) {
+        if (v[1] === 0) throw new Error("Cost Price cannot be zero.");
+        return "Loss Percentage: " + fmt((v[0] / v[1]) * 100) + "%";
+      }},
+      { cat: "B. Financial Calculations", name: "12. Simple Interest", fields: ["Principal (P)", "Annual Rate (%)", "Time (years)"], fn: function(v) {
+        return "Simple Interest: " + fmt((v[0] * v[1] * v[2]) / 100);
+      }},
+      { cat: "B. Financial Calculations", name: "13. Compound Interest", fields: ["Principal (P)", "Annual Rate (%)", "Time (years)", "Compounding Frequency per Period (n)"], fn: function(v) {
+        if (v[3] === 0) throw new Error("Compounding frequency cannot be zero.");
+        var ci = v[0] * Math.pow(1 + v[1] / (100 * v[3]), v[3] * v[2]) - v[0];
+        return "Compound Interest: " + fmt(ci);
+      }},
+
+      // C. RECTANGLE
+      { cat: "C. Rectangle", name: "14. Area of a Rectangle", fields: ["Length", "Breadth"], fn: function(v) {
+        return "Area of Rectangle: " + fmt(v[0] * v[1]);
+      }},
+      { cat: "C. Rectangle", name: "15. Perimeter of a Rectangle", fields: ["Length", "Breadth"], fn: function(v) {
+        return "Perimeter of Rectangle: " + fmt(2 * (v[0] + v[1]));
+      }},
+      { cat: "C. Rectangle", name: "16. Diagonal of a Rectangle", fields: ["Length", "Breadth"], fn: function(v) {
+        return "Diagonal of Rectangle: " + fmt(Math.sqrt(v[0] * v[0] + v[1] * v[1]));
+      }},
+      { cat: "C. Rectangle", name: "17. Aspect Ratio of a Rectangle", fields: ["Length", "Breadth"], fn: function(v) {
+        if (v[1] === 0) throw new Error("Breadth cannot be zero.");
+        if (isWhole(v[0]) && isWhole(v[1])) {
+          var g = gcdInt(v[0], v[1]);
+          return "Aspect Ratio: " + (v[0] / g) + ":" + (v[1] / g);
+        }
+        return "Aspect Ratio: " + fmt(v[0] / v[1]) + " : 1";
+      }},
+      { cat: "C. Rectangle", name: "18. Circumradius of a Rectangle", fields: ["Length", "Breadth"], fn: function(v) {
+        return "Circumradius of Rectangle: " + fmt(Math.sqrt(v[0] * v[0] + v[1] * v[1]) / 2);
+      }},
+      { cat: "C. Rectangle", name: "19. Center Coordinates of a Rectangle", fields: ["X1", "Y1", "X2", "Y2"], fn: function(v) {
+        return "Center Coordinates: (" + fmt((v[0] + v[2]) / 2) + ", " + fmt((v[1] + v[3]) / 2) + ")";
+      }},
+      { cat: "C. Rectangle", name: "20. Length from Area and Breadth", fields: ["Area", "Breadth"], fn: function(v) {
+        if (v[1] === 0) throw new Error("Breadth cannot be zero.");
+        return "Length: " + fmt(v[0] / v[1]);
+      }},
+      { cat: "C. Rectangle", name: "21. Breadth from Area and Length", fields: ["Area", "Length"], fn: function(v) {
+        if (v[1] === 0) throw new Error("Length cannot be zero.");
+        return "Breadth: " + fmt(v[0] / v[1]);
+      }},
+      { cat: "C. Rectangle", name: "22. Length from Perimeter and Breadth", fields: ["Perimeter", "Breadth"], fn: function(v) {
+        return "Length: " + fmt(v[0] / 2 - v[1]);
+      }},
+      { cat: "C. Rectangle", name: "23. Breadth from Perimeter and Length", fields: ["Perimeter", "Length"], fn: function(v) {
+        return "Breadth: " + fmt(v[0] / 2 - v[1]);
+      }},
+      { cat: "C. Rectangle", name: "24. Length from Diagonal and Breadth", fields: ["Diagonal", "Breadth"], fn: function(v) {
+        var d = v[0] * v[0] - v[1] * v[1];
+        if (d < 0) throw new Error("Diagonal must be >= Breadth.");
+        return "Length: " + fmt(Math.sqrt(d));
+      }},
+      { cat: "C. Rectangle", name: "25. Breadth from Diagonal and Length", fields: ["Diagonal", "Length"], fn: function(v) {
+        var d = v[0] * v[0] - v[1] * v[1];
+        if (d < 0) throw new Error("Diagonal must be >= Length.");
+        return "Breadth: " + fmt(Math.sqrt(d));
+      }},
+
+      // D. SQUARE
+      { cat: "D. Square", name: "26. Area of a Square", fields: ["Side"], fn: function(v) {
+        return "Area of Square: " + fmt(v[0] * v[0]);
+      }},
+      { cat: "D. Square", name: "27. Perimeter of a Square", fields: ["Side"], fn: function(v) {
+        return "Perimeter of Square: " + fmt(4 * v[0]);
+      }},
+      { cat: "D. Square", name: "28. Diagonal of a Square", fields: ["Side"], fn: function(v) {
+        return "Diagonal of Square: " + fmt(v[0] * Math.SQRT2);
+      }},
+      { cat: "D. Square", name: "29. Inradius of a Square", fields: ["Side"], fn: function(v) {
+        return "Inradius of Square: " + fmt(v[0] / 2);
+      }},
+      { cat: "D. Square", name: "30. Circumradius of a Square", fields: ["Side"], fn: function(v) {
+        return "Circumradius of Square: " + fmt((v[0] * Math.SQRT2) / 2);
+      }},
+      { cat: "D. Square", name: "31. Side from Area of a Square", fields: ["Area"], fn: function(v) {
+        if (v[0] < 0) throw new Error("Area cannot be negative.");
+        return "Side from Area: " + fmt(Math.sqrt(v[0]));
+      }},
+      { cat: "D. Square", name: "32. Side from Perimeter of a Square", fields: ["Perimeter"], fn: function(v) {
+        return "Side from Perimeter: " + fmt(v[0] / 4);
+      }},
+      { cat: "D. Square", name: "33. Side from Diagonal of a Square", fields: ["Diagonal"], fn: function(v) {
+        return "Side from Diagonal: " + fmt(v[0] / Math.SQRT2);
+      }},
+
+      // E. CIRCLE
+      { cat: "E. Circle", name: "34. Radius of a Circle", fields: ["Diameter"], fn: function(v) {
+        return "Radius: " + fmt(v[0] / 2);
+      }},
+      { cat: "E. Circle", name: "35. Diameter of a Circle", fields: ["Radius"], fn: function(v) {
+        return "Diameter: " + fmt(2 * v[0]);
+      }},
+      { cat: "E. Circle", name: "36. Area of a Circle", fields: ["Radius"], fn: function(v) {
+        return "Area of Circle: " + fmt(Math.PI * v[0] * v[0]);
+      }},
+      { cat: "E. Circle", name: "37. Circumference of a Circle", fields: ["Radius"], fn: function(v) {
+        return "Circumference: " + fmt(2 * Math.PI * v[0]);
+      }},
+      { cat: "E. Circle", name: "38. Radius from Area of a Circle", fields: ["Area"], fn: function(v) {
+        if (v[0] < 0) throw new Error("Area cannot be negative.");
+        return "Radius from Area: " + fmt(Math.sqrt(v[0] / Math.PI));
+      }},
+      { cat: "E. Circle", name: "39. Radius from Circumference of a Circle", fields: ["Circumference"], fn: function(v) {
+        return "Radius from Circumference: " + fmt(v[0] / (2 * Math.PI));
+      }},
+      { cat: "E. Circle", name: "40. Area of a Sector", fields: ["Radius", "Angle (degrees)"], fn: function(v) {
+        return "Area of Sector: " + fmt((v[1] / 360) * Math.PI * v[0] * v[0]);
+      }},
+      { cat: "E. Circle", name: "41. Perimeter of a Sector", fields: ["Radius", "Angle (degrees)"], fn: function(v) {
+        var arc = (v[1] / 360) * 2 * Math.PI * v[0];
+        return "Perimeter of Sector: " + fmt(arc + 2 * v[0]);
+      }},
+      { cat: "E. Circle", name: "42. Arc Length of a Circle", fields: ["Radius", "Angle (degrees)"], fn: function(v) {
+        return "Arc Length: " + fmt((v[1] / 360) * 2 * Math.PI * v[0]);
+      }},
+      { cat: "E. Circle", name: "43. Chord Length of a Circle", fields: ["Radius", "Central Angle (degrees)"], fn: function(v) {
+        var radHalf = (v[1] * Math.PI) / 360;
+        return "Chord Length: " + fmt(2 * v[0] * Math.sin(radHalf));
+      }},
+      { cat: "E. Circle", name: "44. Distance from Center to Chord", fields: ["Radius", "Chord Length"], fn: function(v) {
+        var d = v[0] * v[0] - (v[1] / 2) * (v[1] / 2);
+        if (d < 0) throw new Error("Chord length cannot exceed diameter.");
+        return "Distance from Center to Chord: " + fmt(Math.sqrt(d));
+      }},
+      { cat: "E. Circle", name: "45. Area of a Segment of a Circle", fields: ["Radius", "Central Angle (degrees)"], fn: function(v) {
+        var rad = (v[1] * Math.PI) / 180;
+        return "Area of Segment: " + fmt(0.5 * v[0] * v[0] * (rad - Math.sin(rad)));
+      }},
+      { cat: "E. Circle", name: "46. Area of an Annulus", fields: ["Outer Radius (R)", "Inner Radius (r)"], fn: function(v) {
+        if (v[0] < v[1]) throw new Error("Outer radius must be >= inner radius.");
+        return "Area of Annulus: " + fmt(Math.PI * (v[0] * v[0] - v[1] * v[1]));
+      }},
+
+      // F. TRIANGLE
+      { cat: "F. Triangle", name: "47. Perimeter of a Triangle", fields: ["Side a", "Side b", "Side c"], fn: function(v) {
+        return "Perimeter of Triangle: " + fmt(v[0] + v[1] + v[2]);
+      }},
+      { cat: "F. Triangle", name: "48. Area of a Triangle (Base & Height)", fields: ["Base", "Height"], fn: function(v) {
+        return "Area of Triangle: " + fmt(0.5 * v[0] * v[1]);
+      }},
+      { cat: "F. Triangle", name: "49. Area of a Triangle (Heron's Formula)", fields: ["Side a", "Side b", "Side c"], fn: function(v) {
+        var s = (v[0] + v[1] + v[2]) / 2;
+        var val = s * (s - v[0]) * (s - v[1]) * (s - v[2]);
+        if (val < 0) throw new Error("Given sides do not form a valid triangle.");
+        return "Area of Triangle: " + fmt(Math.sqrt(val));
+      }},
+      { cat: "F. Triangle", name: "50. Area of a Triangle (Two Sides & Included Angle - SAS)", fields: ["Side a", "Side b", "Included Angle (degrees)"], fn: function(v) {
+        var rad = (v[2] * Math.PI) / 180;
+        return "Area of Triangle: " + fmt(0.5 * v[0] * v[1] * Math.sin(rad));
+      }},
+      { cat: "F. Triangle", name: "51. Area of a Triangle Using Coordinates (Shoelace Formula)", fields: ["x1", "y1", "x2", "y2", "x3", "y3"], fn: function(v) {
+        var area = 0.5 * Math.abs(v[0] * (v[3] - v[5]) + v[2] * (v[5] - v[1]) + v[4] * (v[1] - v[3]));
+        return "Area of Triangle: " + fmt(area);
+      }},
+      { cat: "F. Triangle", name: "52. Hypotenuse of a Right Triangle", fields: ["Base", "Perpendicular"], fn: function(v) {
+        return "Hypotenuse: " + fmt(Math.sqrt(v[0] * v[0] + v[1] * v[1]));
+      }},
+      { cat: "F. Triangle", name: "53. Base or Perpendicular of a Right Triangle", fields: ["Hypotenuse", "Known Side (Base or Perpendicular)"], fn: function(v) {
+        var d = v[0] * v[0] - v[1] * v[1];
+        if (d < 0) throw new Error("Hypotenuse must be >= known side.");
+        return "Unknown Side: " + fmt(Math.sqrt(d));
+      }},
+      { cat: "F. Triangle", name: "54. Inradius of a Right Triangle", fields: ["Base (a)", "Perpendicular (b)", "Hypotenuse (c)"], fn: function(v) {
+        return "Inradius: " + fmt((v[0] + v[1] - v[2]) / 2);
+      }},
+      { cat: "F. Triangle", name: "55. Area of an Equilateral Triangle", fields: ["Side"], fn: function(v) {
+        return "Area of Equilateral Triangle: " + fmt((Math.sqrt(3) / 4) * v[0] * v[0]);
+      }},
+      { cat: "F. Triangle", name: "56. Perimeter of an Equilateral Triangle", fields: ["Side"], fn: function(v) {
+        return "Perimeter of Equilateral Triangle: " + fmt(3 * v[0]);
+      }},
+      { cat: "F. Triangle", name: "57. Height of an Equilateral Triangle", fields: ["Side"], fn: function(v) {
+        return "Height of Equilateral Triangle: " + fmt((Math.sqrt(3) / 2) * v[0]);
+      }},
+      { cat: "F. Triangle", name: "58. Inradius of an Equilateral Triangle", fields: ["Side"], fn: function(v) {
+        return "Inradius of Equilateral Triangle: " + fmt(v[0] / (2 * Math.sqrt(3)));
+      }},
+      { cat: "F. Triangle", name: "59. Circumradius of an Equilateral Triangle", fields: ["Side"], fn: function(v) {
+        return "Circumradius of Equilateral Triangle: " + fmt(v[0] / Math.sqrt(3));
+      }},
+      { cat: "F. Triangle", name: "60. Area of an Isosceles Triangle", fields: ["Equal Side (a)", "Base (b)"], fn: function(v) {
+        var inside = 4 * v[0] * v[0] - v[1] * v[1];
+        if (inside < 0) throw new Error("Equal sides are too short for the given base.");
+        return "Area of Isosceles Triangle: " + fmt((v[1] / 4) * Math.sqrt(inside));
+      }},
+      { cat: "F. Triangle", name: "61. Perimeter of an Isosceles Triangle", fields: ["Equal Side (a)", "Base (b)"], fn: function(v) {
+        return "Perimeter of Isosceles Triangle: " + fmt(2 * v[0] + v[1]);
+      }},
+      { cat: "F. Triangle", name: "62. Inradius of a Triangle (General)", fields: ["Side a", "Side b", "Side c"], fn: function(v) {
+        var s = (v[0] + v[1] + v[2]) / 2;
+        var areaSq = s * (s - v[0]) * (s - v[1]) * (s - v[2]);
+        if (areaSq <= 0 || s === 0) throw new Error("Invalid triangle dimensions.");
+        return "Inradius: " + fmt(Math.sqrt(areaSq) / s);
+      }},
+      { cat: "F. Triangle", name: "63. Circumradius of a Triangle (General)", fields: ["Side a", "Side b", "Side c"], fn: function(v) {
+        var s = (v[0] + v[1] + v[2]) / 2;
+        var areaSq = s * (s - v[0]) * (s - v[1]) * (s - v[2]);
+        if (areaSq <= 0) throw new Error("Invalid triangle dimensions.");
+        return "Circumradius: " + fmt((v[0] * v[1] * v[2]) / (4 * Math.sqrt(areaSq)));
+      }},
+      { cat: "F. Triangle", name: "64. Altitude from Area and Side", fields: ["Area", "Side"], fn: function(v) {
+        if (v[1] === 0) throw new Error("Side cannot be zero.");
+        return "Altitude: " + fmt((2 * v[0]) / v[1]);
+      }},
+      { cat: "F. Triangle", name: "65. Length of Median of a Triangle", fields: ["Side a", "Side b", "Side c (side bisected by median)"], fn: function(v) {
+        var val = 2 * v[0] * v[0] + 2 * v[1] * v[1] - v[2] * v[2];
+        if (val < 0) throw new Error("Invalid side lengths for median calculation.");
+        return "Length of Median: " + fmt(0.5 * Math.sqrt(val));
+      }},
+      { cat: "F. Triangle", name: "66. Third Angle of a Triangle (Given Two Angles)", fields: ["Angle 1 (degrees)", "Angle 2 (degrees)"], fn: function(v) {
+        return "Third Angle: " + fmt(180 - (v[0] + v[1])) + "°";
+      }},
+
+      // G. UNIT CONVERSION
+      { cat: "G. Unit Conversion", name: "67. Centimetres to Metres", fields: ["Centimetres (cm)"], fn: function(v) {
+        return "Metres: " + fmt(v[0] / 100) + " m";
+      }},
+      { cat: "G. Unit Conversion", name: "68. Metres to Kilometres", fields: ["Metres (m)"], fn: function(v) {
+        return "Kilometres: " + fmt(v[0] / 1000) + " km";
+      }},
+      { cat: "G. Unit Conversion", name: "69. Grams to Kilograms", fields: ["Grams (g)"], fn: function(v) {
+        return "Kilograms: " + fmt(v[0] / 1000) + " kg";
+      }},
+      { cat: "G. Unit Conversion", name: "70. Kilograms to Grams", fields: ["Kilograms (kg)"], fn: function(v) {
+        return "Grams: " + fmt(v[0] * 1000) + " g";
+      }},
+      { cat: "G. Unit Conversion", name: "71. Celsius to Fahrenheit", fields: ["Celsius (°C)"], fn: function(v) {
+        return "Fahrenheit: " + fmt((v[0] * 9) / 5 + 32) + " °F";
+      }},
+      { cat: "G. Unit Conversion", name: "72. Fahrenheit to Celsius", fields: ["Fahrenheit (°F)"], fn: function(v) {
+        return "Celsius: " + fmt(((v[0] - 32) * 5) / 9) + " °C";
+      }}
+    ];
+
+    (function init() {
+      var categorySelect = document.getElementById("categorySelect");
+      var calcSelect = document.getElementById("calcSelect");
+      var inputsContainer = document.getElementById("inputsContainer");
+      var calcForm = document.getElementById("calcForm");
+      var resultBox = document.getElementById("resultBox");
+
+      var seen = {};
+      for (var i = 0; i < ITEMS.length; i++) {
+        var c = ITEMS[i].cat;
+        if (!seen[c]) {
+          seen[c] = true;
+          var opt = document.createElement("option");
+          opt.value = c;
+          opt.textContent = c;
+          categorySelect.appendChild(opt);
+        }
+      }
+
+      function getCurrentItem() {
+        var idx = Number(calcSelect.value);
+        return ITEMS[idx];
+      }
+
+      function populateCalcs() {
+        var chosenCat = categorySelect.value;
+        calcSelect.innerHTML = "";
+        for (var i = 0; i < ITEMS.length; i++) {
+          if (ITEMS[i].cat === chosenCat) {
+            var opt = document.createElement("option");
+            opt.value = String(i);
+            opt.textContent = ITEMS[i].name;
+            calcSelect.appendChild(opt);
+          }
+        }
+        renderInputs();
+      }
+
+      function renderInputs() {
+        var item = getCurrentItem();
+        inputsContainer.innerHTML = "";
+        resultBox.className = "result-box";
+        resultBox.textContent = "";
+        if (!item) return;
+
+        for (var i = 0; i < item.fields.length; i++) {
+          var wrap = document.createElement("div");
+          wrap.className = "field-group";
+
+          var lbl = document.createElement("label");
+          lbl.setAttribute("for", "inp_" + i);
+          lbl.textContent = item.fields[i];
+
+          var inp = document.createElement("input");
+          inp.id = "inp_" + i;
+          if (item.isText) {
+            inp.type = "text";
+            inp.value = item.def || "10, 20, 30";
+          } else {
+            inp.type = "number";
+            inp.step = "any";
+            inp.value = "1";
+          }
+
+          wrap.appendChild(lbl);
+          wrap.appendChild(inp);
+          inputsContainer.appendChild(wrap);
+        }
+      }
+
+      calcForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+        var item = getCurrentItem();
+        if (!item) return;
+        var vals = [];
+        try {
+          for (var i = 0; i < item.fields.length; i++) {
+            var inp = document.getElementById("inp_" + i);
+            if (item.isText) {
+              vals.push(inp.value);
+            } else {
+              var num = parseFloat(inp.value);
+              if (isNaN(num)) throw new Error('Enter a valid number for "' + item.fields[i] + '".');
+              vals.push(num);
+            }
+          }
+          var out = item.fn(vals);
+          resultBox.className = "result-box success";
+          resultBox.textContent = out;
+        } catch (err) {
+          resultBox.className = "result-box error";
+          resultBox.textContent = "Error: " + err.message;
+        }
+      });
+
+      categorySelect.addEventListener("change", populateCalcs);
+      calcSelect.addEventListener("change", renderInputs);
+      populateCalcs();
+    })();
+  </script>
+</body>
+</html>
